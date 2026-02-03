@@ -51,12 +51,52 @@
         </div>
 
 	</div>
+
+    <button @onclick="ConvertCurrency"
+            disabled="@isLoading"
+            class="convert-button">
+        @if (isLoading)
+        {
+            <span>🔄 Converting...</span>
+        }
+        else
+        {
+            <span>Convert</span>
+        }
+    </button>
+
+    @if (conversionResult.HasValue)
+    {
+        <div class="result-card">
+            <p class="result-label">Converted Amount</p>
+            <p class="result-amount">
+                @GetCurrencySymbol(toCurrency) @conversionResult.Value.ToString("N2")
+            </p>
+            <p class="result-rate">
+                1 @fromCurrency = @exchangeRate?.ToString("N4") @toCurrency
+            </p>
+            @if (!string.IsNullOrEmpty(lastUpdated))
+            {
+                <p class="result-time">Updated at @lastUpdated</p>
+            }
+        </div>
+    }
+
+    <div class="footer-text">
+        Exchange rates updated in real-time
+    </div>
 </div>
 
 @code {
     decimal amount = 100;
     private string fromCurrency = "USD";
     private string toCurrency = "EUR";
+    private decimal? conversionResult;
+    private decimal? exchangeRate;
+    private bool isLoading = false;
+    private string? errorMessage;
+    private string? lastUpdated;
+
 
     List<Currency> availableCurrencies = new();
 
@@ -65,9 +105,60 @@
         availableCurrencies = currencyServices.GetAvailableCurrencies();
     }
 
+    protected override async Task OnInitializedAsync()
+    {
+        await ConvertCurrency();
+    }
+
+    private async Task ConvertCurrency()
+    {
+        if (amount <= 0)
+        {
+            errorMessage = "Please enter a valid amount";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        conversionResult = null;
+
+        try
+        {
+            var ratesData = await currencyServices.GetExchangeRatesAsync(fromCurrency, toCurrency, (double)amount);
+
+            if (ratesData != null)
+            {
+                conversionResult = (decimal)ratesData.ConversionResult;
+                lastUpdated = DateTime.Now.ToString("h:mm:ss tt");
+            }
+            else
+            {
+                errorMessage = "Unable to fetch conversion rates. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
     private void SwapCurrencies()
     {
-        
+        var temp = fromCurrency;
+        fromCurrency = toCurrency;
+        toCurrency = temp;
+        conversionResult = null;
+        exchangeRate = null;
+    }
+
+    private string GetCurrencySymbol(string currencyCode)
+    {
+        var currency = availableCurrencies.FirstOrDefault(c => c.Code == currencyCode);
+        return currency?.Symbol ?? "$";
     }
 
 }

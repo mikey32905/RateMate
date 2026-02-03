@@ -1,32 +1,56 @@
 ﻿using RateMate.Models;
+using System.Data.SqlTypes;
+using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace RateMate.Services
 {
     public class CurrencyServices : ICurrencyServices
     {
         private readonly HttpClient _httpClient;
-        private const string ApiBaseUrl = "https://api.exchangerate-api.com/v4/latest/";
+        private readonly IConfiguration _config;    
+        private const string ApiBaseUrl = "https://v6.exchangerate-api.com/v6/";
 
-        public CurrencyServices(HttpClient httpClient)
+        public CurrencyServices(HttpClient httpClient, IConfiguration config)
         {
             _httpClient = httpClient;
+            _config = config;
         }
 
-        public async Task<ExchangeRateResponse?> GetExchangeRatesAsync(string baseCurrency)
+        private readonly JsonSerializerOptions _jsonOptions = new()
         {
-            try
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        };
+
+
+        public async Task<ExchangeRateResponse?> GetExchangeRatesAsync(string baseCurrency, string targetCurrency, double amount)
+        {
+
+            string? configKey = "ExchangeRateAccessKey";
+
+            string? devApiKey = _config[configKey]; 
+            string? prodApiKey = Environment.GetEnvironmentVariable(configKey);
+
+            var exchangeKey = string.IsNullOrEmpty(devApiKey) ? prodApiKey : devApiKey;
+
+
+            if (!string.IsNullOrEmpty(configKey)) 
             {
+                var exchangeUrl = $"{ApiBaseUrl}{exchangeKey}/pair/{baseCurrency}/{targetCurrency}/{amount}";
+
                 var response = await _httpClient.GetFromJsonAsync<ExchangeRateResponse>(
-                    $"{ApiBaseUrl}{baseCurrency}"
+                   exchangeUrl, _jsonOptions
                 );
                 return response;
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine($"Error fetching exchange rates: {ex.Message}");
+                Console.WriteLine($"No ExchangeRate-API key found in configuration. Please set the '{configKey}' environment variable or app setting.");
                 return null;
             }
+ 
         }
 
         public List<Currency> GetAvailableCurrencies()
