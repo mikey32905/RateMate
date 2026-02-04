@@ -1,9 +1,6 @@
 ﻿using RateMate.Models;
-using System.Data.SqlTypes;
-using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace RateMate.Services
 {
@@ -17,6 +14,8 @@ namespace RateMate.Services
         {
             _httpClient = httpClient;
             _config = config;
+
+            
         }
 
         private readonly JsonSerializerOptions _jsonOptions = new()
