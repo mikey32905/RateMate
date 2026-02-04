@@ -15,7 +15,20 @@ namespace RateMate.Services
             _httpClient = httpClient;
             _config = config;
 
-            
+            string? exchangeKey = _config["ExchangeRateAccessKey"];
+
+            if (!string.IsNullOrEmpty(exchangeKey))
+            {
+                _httpClient.BaseAddress = new Uri($"{ApiBaseUrl}{exchangeKey}/");
+            }
+            else
+            {
+                //deployed to Netlify
+                _httpClient.BaseAddress = new Uri(_httpClient.BaseAddress + $"/{ApiBaseUrl}");
+
+            }
+
+
         }
 
         private readonly JsonSerializerOptions _jsonOptions = new()
@@ -37,7 +50,7 @@ namespace RateMate.Services
 
             if (!string.IsNullOrEmpty(configKey)) 
             {
-                var exchangeUrl = $"{ApiBaseUrl}{exchangeKey}/pair/{baseCurrency}/{targetCurrency}/{amount}";
+                var exchangeUrl = $"pair/{baseCurrency}/{targetCurrency}/{amount}";
 
                 var response = await _httpClient.GetFromJsonAsync<ExchangeRateResponse>(
                    exchangeUrl, _jsonOptions
