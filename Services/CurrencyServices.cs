@@ -12,22 +12,22 @@ namespace RateMate.Services
 
         public CurrencyServices(HttpClient httpClient, IConfiguration config)
         {
-            _httpClient = httpClient;
             _config = config;
 
             string? exchangeKey = _config["ExchangeRateAccessKey"];
 
             if (!string.IsNullOrEmpty(exchangeKey))
             {
-                _httpClient.BaseAddress = new Uri($"{ApiBaseUrl}{exchangeKey}/");
+                httpClient.BaseAddress = new Uri($"{ApiBaseUrl}{exchangeKey}/");
             }
             else
             {
                 //deployed to Netlify
-                _httpClient.BaseAddress = new Uri(_httpClient.BaseAddress + $"/{ApiBaseUrl}");
+                httpClient.BaseAddress = new Uri(httpClient.BaseAddress + "exchange/");
 
             }
 
+            _httpClient = httpClient;
 
         }
 
